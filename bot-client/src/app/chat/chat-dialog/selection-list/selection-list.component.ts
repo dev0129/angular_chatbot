@@ -1,18 +1,20 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { ChatService } from '../../chat.service';
 
 @Component({
   selector: 'app-selection-list',
   templateUrl: './selection-list.component.html',
-  styleUrls: ['./selection-list.component.scss']
+  styleUrls: ['./selection-list.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SelectionListComponent implements OnInit {
+export class SelectionListComponent {
 
   @Input() selectionList: string[];
 
   constructor(private chatService: ChatService) { }
 
-  ngOnInit() {
+  trackBySelection(_index: number, selection: string) {
+    return selection;
   }
 
   sendMessage(value: string) {

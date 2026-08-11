@@ -31,8 +31,11 @@ export class PlacesService {
    * @param config Configuration for the request
    */
   getLocations(config: LocationConfig) {
-    // tslint:disable-next-line:max-line-length
-    return this.http.get(`${this.baseURL}/places?location=${config.location}&radius=${config.radius || 5000}&type=${config.type}&keyword=${config.keyword || ''}`)
+    const location = encodeURIComponent(config.location);
+    const type = encodeURIComponent(config.type);
+    const keyword = encodeURIComponent(config.keyword || '');
+    const radius = encodeURIComponent(String(config.radius || 5000));
+    return this.http.get(`${this.baseURL}/places?location=${location}&radius=${radius}&type=${type}&keyword=${keyword}`)
       .pipe(
         catchError(this.handleError('getLocations', []))
       );
@@ -43,7 +46,7 @@ export class PlacesService {
    * @param placeId Id of the place
    */
   getLocationDetail(placeId: string) {
-    return this.http.get(`${this.baseURL}/places/details?placeid=${placeId}`)
+    return this.http.get(`${this.baseURL}/places/details?placeid=${encodeURIComponent(placeId)}`)
       .pipe(
         catchError(this.handleError('getLocationDetails', []))
       );
@@ -54,7 +57,7 @@ export class PlacesService {
    * @param location Name of the location (e.g. Karlsruhe)
    */
   getCoordinates(location: string) {
-    return this.http.get(`${this.baseURL}/geocode?location=${location}`)
+    return this.http.get(`${this.baseURL}/geocode?location=${encodeURIComponent(location)}`)
       .pipe(
         catchError(this.handleError('getCoordinates', []))
       );

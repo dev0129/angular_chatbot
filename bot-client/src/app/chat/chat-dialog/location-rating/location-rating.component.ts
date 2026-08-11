@@ -1,26 +1,28 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
 
 @Component({
   selector: 'app-location-rating',
   templateUrl: './location-rating.component.html',
-  styleUrls: ['./location-rating.component.scss']
+  styleUrls: ['./location-rating.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LocationRatingComponent implements OnInit {
+export class LocationRatingComponent implements OnChanges {
 
   @Input() rating: number;
 
-  constructor() { }
+  stars: number[] = [];
 
-  ngOnInit() {
+  ngOnChanges() {
+    this.stars = this.computeStars(this.rating);
   }
 
-  /**
-   * Get the amount of stars for the rating bar of a location.
-   * @param rating Rating as number
-   */
-  getRatingStars(rating: number) {
+  trackByIndex(index: number) {
+    return index;
+  }
+
+  private computeStars(rating: number) {
     const stars = [];
-    const starsArray = rating ? rating.toString().split('.') : [0, 0];
+    const starsArray = rating ? rating.toString().split('.') : ['0', '0'];
 
     const amountFullStars = Number(starsArray[0]);
     let amountHalfStars = 0;

@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs/BehaviorSubject';
 import { Observable } from 'rxjs/Observable';
 import { of } from 'rxjs/observable/of';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { Location, MessageConfig } from '../models';
 import { FavoritesService } from './favorites.service';
@@ -24,6 +24,7 @@ export class ChatService {
   usersAddress: string;
   isLoading: BehaviorSubject<boolean>;
   isLoadingPossibleAnswers: BehaviorSubject<boolean>;
+  private messageIdCounter = 0;
 
   constructor(
     private readonly http: HttpClient,
@@ -90,7 +91,7 @@ export class ChatService {
    */
   addMessageToChat(options: MessageConfig) {
     this.chatMessages.next([...this.chatMessages.value, {
-      id: Math.random(),
+      id: ++this.messageIdCounter,
       text: options.text,
       textAsHtml: options.textAsHtml,
       locationsList: options.locationsList,
@@ -184,15 +185,30 @@ export class ChatService {
    */
   private getLocations(params: any) {
     this.isLoading.next(true);
-    this.placesService.getCoordinates(params.Location).subscribe((coords: any) => {
-      if (coords.results.length > 0) {
-        const location = `${coords.results[0].geometry.location.lat},${coords.results[0].geometry.location.lng}`;
-        this.placesService.getLocations({
-          location,
-          type: params.EventType,
-          keyword: params.EventKeyword,
-        }).subscribe(res => this.handleGetLocations(res));
+    this.placesService.getCoordinates(params.Location).pipe(
+      switchMap((coords: any) => {
+        if (coords.results && coords.results.length > 0) {
+          const location = `${coords.results[0].geometry.location.lat},${coords.results[0].geometry.location.lng}`;
+          return this.placesService.getLocations({
+            location,
+            type: params.EventType,
+            keyword: params.EventKeyword,
+          });
+        }
+        return of(null);
+      }),
+      finalize(() => this.isLoading.next(false)),
+    ).subscribe(res => {
+      if (res) {
+        this.handleGetLocations(res);
+        return;
       }
+
+      this.addMessageToChat({
+        text: 'Ich konnte leider keine Orte finden 😕',
+        bot: true,
+      });
+      this.possibleAnswers.next(['Etwas anderes machen']);
     });
   }
 
@@ -201,7 +217,6 @@ export class ChatService {
    * @param res Locations list from the api.
    */
   private handleGetLocations(res: any) {
-    this.isLoading.next(false);
     this.listStartIndex = 0;
     this.listAmount = 5;
     this.locationsList = res.results;

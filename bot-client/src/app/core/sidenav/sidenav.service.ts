@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { MatDrawerToggleResult, MatSidenav } from '@angular/material/sidenav';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs/operators';
 
 @Injectable()
 export class SidenavService {
@@ -45,9 +46,12 @@ export class SidenavService {
   }
 
   constructor(private router: Router) {
-    // close sidenav when the user navigates
-    router.events.subscribe((val) => {
-      this.close();
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+    ).subscribe(() => {
+      if (this.sidenav) {
+        this.close();
+      }
     });
   }
 }

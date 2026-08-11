@@ -9,67 +9,54 @@ app.use(cors());
 
 const googleApiKey = process.env.GOOGLE_KEY;
 
-app.get('/places', (request: any, response: any) => {
-    const query = {
-        location: request.query.location,
-        radius: request.query.radius,
-        type: request.query.type,
-        keyword: request.query.keyword,
-    }
+function proxyGoogleApi(
+  path: string,
+  params: Record<string, string>,
+  response: express.Response,
+  cacheSeconds?: number,
+) {
+  const searchParams = new URLSearchParams({ ...params, key: googleApiKey || '' });
+  const url = `https://maps.googleapis.com/maps/api/${path}?${searchParams.toString()}`;
 
-    https.get(`https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${query.location}&radius=${query.radius}&type=${query.type}&keyword=${query.keyword}&key=${googleApiKey}`, (res) => {
-        res.setEncoding("utf8");
-        let body = "";
-        res.on("data", data => {
-            body += data;
-        });
-        res.on("end", () => {
-            body = JSON.parse(body);
-            response.send(body);
-        });
-    }).on('error', (e) => {
-        console.error(e);
+  https.get(url, (res) => {
+    res.setEncoding('utf8');
+    let body = '';
+    res.on('data', data => {
+      body += data;
     });
+    res.on('end', () => {
+      if (cacheSeconds) {
+        response.set('Cache-Control', `public, max-age=${cacheSeconds}`);
+      }
+      response.send(JSON.parse(body));
+    });
+  }).on('error', (error) => {
+    console.error(error);
+    response.status(502).send({ error: 'Upstream request failed' });
+  });
+}
+
+app.get('/places', (request: express.Request, response: express.Response) => {
+  proxyGoogleApi('place/nearbysearch/json', {
+    location: String(request.query.location || ''),
+    radius: String(request.query.radius || '5000'),
+    type: String(request.query.type || ''),
+    keyword: String(request.query.keyword || ''),
+  }, response, 300);
 });
 
-app.get('/places/details', (request: any, response: any) => {
-    const query = {
-        placeid: request.query.placeid
-    }
-
-    https.get(`https://maps.googleapis.com/maps/api/place/details/json?placeid=${query.placeid}&key=${googleApiKey}`, (res) => {
-        res.setEncoding("utf8");
-        let body = "";
-        res.on("data", data => {
-            body += data;
-        });
-        res.on("end", () => {
-            body = JSON.parse(body);
-            response.send(body);
-        });
-    }).on('error', (e) => {
-        console.error(e);
-    });
+app.get('/places/details', (request: express.Request, response: express.Response) => {
+  proxyGoogleApi('place/details/json', {
+    place_id: String(request.query.placeid || ''),
+  }, response, 3600);
 });
 
-app.get('/geocode', (request: any, response: any) => {
-    const query = {
-        location: request.query.location
-    }
+app.get('/geocode', (request: express.Request, response: express.Response) => {
+  const location = String(request.query.location || '');
+  const isLatLng = /^-?\d+\.?\d*,-?\d+\.?\d*$/.test(location);
+  const params = isLatLng ? { latlng: location } : { address: location };
 
-    https.get(`https://maps.googleapis.com/maps/api/geocode/json?address=${query.location}&key=${googleApiKey}`, (res) => {
-        res.setEncoding("utf8");
-        let body = "";
-        res.on("data", data => {
-            body += data;
-        });
-        res.on("end", () => {
-            body = JSON.parse(body);
-            response.send(body);
-        });
-    }).on('error', (e) => {
-        console.error(e);
-    });
+  proxyGoogleApi('geocode/json', params, response, 3600);
 });
 
 export const api = functions.https.onRequest(app);

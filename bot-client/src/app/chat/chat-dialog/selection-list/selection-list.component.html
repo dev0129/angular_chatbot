@@ -1,5 +1,5 @@
 <ul class="chat-message-selection-list" *ngIf="selectionList?.length > 0">
-  <li *ngFor="let select of selectionList" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="20px">
+  <li *ngFor="let select of selectionList; trackBy: trackBySelection" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="20px">
     <div fxFlex="60">{{select}}</div>
     <div fxFlex="40">
       <button mat-button (click)="sendMessage(select)">Wählen</button>

@@ -1,7 +1,7 @@
 <div class="chat-window">
   <div class="chat-message-list" #scrollMe>
     <ul>
-      <li class="chat-message" [ngClass]="{'left': message.bot, 'right': !message.bot}" *ngFor="let message of chatMessages | async"
+      <li class="chat-message" [ngClass]="{'left': message.bot, 'right': !message.bot}" *ngFor="let message of chatMessages | async; trackBy: trackByMessageId"
         [@fadeIn]>
         <div class="chat-message-image">
           <i class="material-icons">{{message.bot ? 'help_outline' : 'face'}}</i>
@@ -31,7 +31,7 @@
   </div>
   <div class="bottom-bar">
     <ul class="possibleAnswers">
-      <li *ngFor="let answer of (possibleAnswers | async)">
+      <li *ngFor="let answer of (possibleAnswers | async); trackBy: trackByAnswer">
         <button mat-button (click)="sendMessage(answer)">{{answer}}</button>
       </li>
       <li *ngIf="isLoadingPossibleAnswers | async">
